@@ -79,6 +79,8 @@ class Combine extends Abstract_JS_Optimization {
 		$this->minifier    = $minifier;
 		$this->local_cache = $local_cache;
 		$this->jquery_url  = $this->get_jquery_url();
+
+		$this->minifier->set_script_separator( $this->get_scripts_separator() );
 	}
 
 	/**
@@ -141,7 +143,13 @@ class Combine extends Abstract_JS_Optimization {
 			}
 		}
 
-		$html = str_replace( '</body>', '<script src="' . esc_url( $minify_url ) . '" data-minify="1"></script>' . $move_after . '</body>', $html );
+		$ee_script_url     = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$ee_script_url     = WP_ROCKET_PATH . 'assets/js/wpr-early-events' . $ee_script_url . '.js';
+		$ee_script_content = $this->get_file_content( $ee_script_url );
+		$ee_script_content = str_replace( '%%scripts_url%%', esc_url( $minify_url ), $ee_script_content );
+		$ee_script_content = str_replace( '%%scripts_boundary%%', $this->get_scripts_separator(), $ee_script_content );
+
+		$html = str_replace( '</body>', "<script>$ee_script_content</script>$move_after</body>", $html );
 
 		foreach ( $combine_scripts as $script ) {
 			$html = str_replace( $script[0], '', $html );
@@ -277,28 +285,28 @@ class Combine extends Abstract_JS_Optimization {
 	 * @return string
 	 */
 	protected function get_content() {
-		$content = '';
+		$content = [];
 
 		foreach ( $this->scripts as $script ) {
 			if ( 'file' === $script['type'] ) {
 				$file_content = $this->get_file_content( $script['content'] );
-				$content     .= $file_content;
+				$content[]    = $file_content;
 
 				$this->add_to_minify( $file_content );
 			} elseif ( 'url' === $script['type'] ) {
 				$file_content = $this->local_cache->get_content( rocket_add_url_protocol( $script['content'] ) );
-				$content     .= $file_content;
+				$content[]    = $file_content;
 
 				$this->add_to_minify( $file_content );
 			} elseif ( 'inline' === $script['type'] ) {
 				$inline_js = rtrim( $script['content'], ";\n\t\r" ) . ';';
-				$content  .= $inline_js;
+				$content[] = $inline_js;
 
 				$this->add_to_minify( $inline_js );
 			}
 		}
 
-		return $content;
+		return implode( $this->get_scripts_separator(), $content );
 	}
 
 	/**
@@ -589,5 +597,19 @@ class Combine extends Abstract_JS_Optimization {
 		}
 
 		return $localized_scripts;
+	}
+
+	/**
+	 * Get the delimiter to use between combined scripts.
+	 *
+	 * @since  3.2
+	 * @access public
+	 * @author Grégory Viguier
+	 *
+	 * @return string
+	 */
+	public function get_scripts_separator() {
+		// Don't use quotes.
+		return '/*! Rocket-Scripts-Separator */';
 	}
 }

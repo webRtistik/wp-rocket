@@ -2,7 +2,6 @@
 namespace WP_Rocket\Optimization\JS;
 
 use WP_Rocket\Logger;
-use MatthiasMullie\Minify as Minifier;
 
 /**
  * Minify JS files
@@ -194,10 +193,10 @@ class Minify extends Abstract_JS_Optimization {
 	 * @since 3.1
 	 * @author Remy Perona
 	 *
-	 * @param string $file_content Content to minify.
-	 * @return Minifier\JS
+	 * @param  string $file_content Content to minify.
+	 * @return \MatthiasMullie\Minify\JS
 	 */
 	protected function get_minifier( $file_content ) {
-		return new Minifier\JS( $file_content );
+		return new JS\Minifier( $file_content );
 	}
 }
