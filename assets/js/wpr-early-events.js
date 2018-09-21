@@ -81,7 +81,7 @@
 		return false;
 	};
 
-	xhr.open( 'GET', '%%scripts_url%%' );
+	xhr.open( 'GET', '%%script_url%%' );
 
 	xhr.onload = function () {
 		releaseOnready();
@@ -101,7 +101,7 @@
 			return;
 		}
 
-		s = xhr.responseText.substring( li, ci ).split( '%%scripts_boundary%%' );
+		s = xhr.responseText.substring( li, ci ).split( '%%scripts_separator%%' );
 
 		for ( i in s ) {
 			if ( i !== s.length - 1 ) {

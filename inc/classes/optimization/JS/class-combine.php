@@ -143,13 +143,15 @@ class Combine extends Abstract_JS_Optimization {
 			}
 		}
 
-		$ee_script_url     = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		$ee_script_url     = WP_ROCKET_PATH . 'assets/js/wpr-early-events' . $ee_script_url . '.js';
-		$ee_script_content = $this->get_file_content( $ee_script_url );
-		$ee_script_content = str_replace( '%%scripts_url%%', esc_url( $minify_url ), $ee_script_content );
-		$ee_script_content = str_replace( '%%scripts_boundary%%', $this->get_scripts_separator(), $ee_script_content );
+		$ee_script_content = $this->get_early_events_script( $minify_url );
 
-		$html = str_replace( '</body>', "<script>$ee_script_content</script>$move_after</body>", $html );
+		if ( $ee_script_content ) {
+			$html = str_replace( '</body>', "<script>$ee_script_content</script>$move_after</body>", $html );
+		} else {
+			Logger::error( 'Could not get the "Early events" script contents.', [ 'js combine process' ] );
+
+			$html = str_replace( '</body>', '<script src="' . esc_url( $minify_url ) . '" data-minify="1"></script>' . $move_after . '</body>', $html );
+		}
 
 		foreach ( $combine_scripts as $script ) {
 			$html = str_replace( $script[0], '', $html );
@@ -597,6 +599,32 @@ class Combine extends Abstract_JS_Optimization {
 		}
 
 		return $localized_scripts;
+	}
+
+	/**
+	 * Get the content of the "early events" script file.
+	 *
+	 * @since  3.2
+	 * @access public
+	 * @author Grégory Viguier
+	 *
+	 * @param  string $minify_url URL of the minified JS file.
+	 * @return string|bool        The file content. False on failure.
+	 */
+	protected function get_early_events_script( $minify_url ) {
+		$ee_script_url = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+		$ee_script_url = WP_ROCKET_PATH . 'assets/js/wpr-early-events' . $ee_script_url . '.js';
+
+		$ee_script_content = $this->get_file_content( $ee_script_url );
+
+		if ( ! $ee_script_content ) {
+			return false;
+		}
+
+		$ee_script_content = str_replace( '%%script_url%%', esc_url( $minify_url ), $ee_script_content );
+		$ee_script_content = str_replace( '%%scripts_separator%%', $this->get_scripts_separator(), $ee_script_content );
+
+		return $ee_script_content;
 	}
 
 	/**
